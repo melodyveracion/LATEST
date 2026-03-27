@@ -1,0 +1,248 @@
+/* Professional top-nav layout - enterprise style */
+
+.app-wrap {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.app-nav {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    padding: 0 24px;
+    min-height: 56px;
+    background: #ffffff;
+    border-bottom: 1px solid var(--portal-border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.app-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    color: var(--portal-heading);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+}
+
+.app-brand span {
+    color: var(--portal-text-soft);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    background: var(--portal-surface-soft);
+    border-radius: 4px;
+    margin-left: 4px;
+}
+
+.app-nav-links {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+}
+
+.app-nav-links .nav-drop:hover .nav-drop-trigger {
+    color: var(--portal-heading);
+}
+
+.app-nav-links .nav-drop.has-active .nav-drop-trigger {
+    background: var(--portal-accent-soft);
+    color: var(--portal-accent-dark);
+}
+
+.app-nav-links a,
+.app-nav-links .nav-drop-trigger {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    color: var(--portal-text);
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+}
+
+.app-nav-links a:hover,
+.app-nav-links .nav-drop-trigger:hover {
+    background: var(--portal-surface-soft);
+    color: var(--portal-heading);
+}
+
+.app-nav-links a.active {
+    background: var(--portal-accent-soft);
+    color: var(--portal-accent-dark);
+}
+
+.app-nav-links .nav-drop {
+    position: relative;
+}
+
+.app-nav-links .nav-drop-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 220px;
+    margin-top: 4px;
+    padding: 6px;
+    background: #ffffff;
+    border: 1px solid var(--portal-border);
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    display: none;
+}
+
+.app-nav-links .nav-drop:hover .nav-drop-menu,
+.app-nav-links .nav-drop[open] .nav-drop-menu {
+    display: block;
+}
+
+.app-nav-links .nav-drop-menu a {
+    display: block;
+    padding: 10px 12px;
+    font-size: 13px;
+    border-radius: 6px;
+}
+
+.app-nav-links .nav-drop-menu a:hover {
+    background: var(--portal-surface-soft);
+}
+
+.app-nav-links .nav-drop-menu a.active {
+    background: var(--portal-accent-soft);
+    color: var(--portal-accent-dark);
+}
+
+.app-nav-links .nav-drop-trigger svg.caret {
+    width: 14px;
+    height: 14px;
+    opacity: 0.6;
+}
+
+.app-nav-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.app-nav-user .user-info {
+    font-size: 13px;
+    color: var(--portal-text);
+}
+
+.app-nav-user .user-info strong {
+    color: var(--portal-heading);
+}
+
+.app-nav-user .btn-logout {
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--portal-text-soft);
+    background: transparent;
+    border: 1px solid var(--portal-border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.app-nav-user .btn-logout:hover {
+    color: var(--portal-danger);
+    border-color: var(--portal-danger);
+    background: var(--portal-danger-soft);
+}
+
+.app-main {
+    flex: 1;
+    padding: 24px 32px 32px;
+}
+
+.app-main > * {
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+.app-nav-toggle {
+    display: none;
+    padding: 10px 12px;
+    background: transparent;
+    border: 1px solid var(--portal-border);
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--portal-text);
+}
+
+@media (max-width: 1024px) {
+    .app-nav {
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 12px 16px;
+    }
+
+    .app-nav-links {
+        order: 3;
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .app-nav-links .nav-drop-menu {
+        position: static;
+        box-shadow: none;
+        border: none;
+        background: var(--portal-surface-soft);
+        margin: 4px 0 0 12px;
+        padding: 8px;
+    }
+
+    .app-nav-links .nav-drop:hover .nav-drop-menu,
+    .app-nav-links .nav-drop[open] .nav-drop-menu {
+        display: block;
+    }
+}
+
+@media (max-width: 768px) {
+    .app-nav-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 8px;
+    }
+
+    .app-nav-links {
+        display: none;
+    }
+
+    body.nav-open .app-nav-links {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .app-nav-user {
+        margin-left: auto;
+    }
+
+    .app-main {
+        padding: 20px 16px;
+    }
+}
+
+@media print {
+    .app-nav {
+        display: none !important;
+    }
+
+    .app-main {
+        padding: 0;
+    }
+}

@@ -1,0 +1,180 @@
+/* ===============================
+   GLOBAL RESET
+================================ */
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: Arial, sans-serif;
+}
+
+/* ===============================
+   BACKGROUND
+================================ */
+body {
+    background: #0a4b50 url('/images/maxresdefault.jpg') center / cover no-repeat;
+    background-blend-mode: multiply;
+    min-height: 100vh;
+    position: relative;
+    color: white;
+}
+
+/* ===============================
+   OVERLAY (Full Screen)
+================================ */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* ===============================
+   MAIN LAYOUT
+================================ */
+.container {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5%;
+    min-height: 100vh;
+    box-sizing: border-box;
+}
+
+/* ===============================
+   LEFT SIDE (System Info)
+================================ */
+.left {
+    max-width: 40%;
+}
+
+.left h1 {
+    font-size: clamp(60px, 8vw, 80px);
+    font-weight: 900;
+    letter-spacing: 4px;
+    color: #ffffff;
+}
+
+.left p {
+    font-size: clamp(16px, 4vw, 20px);
+    margin-top: 20px;
+    line-height: 1.6;
+    color: #c0cccd;
+}
+
+/* ===============================
+   LOGIN BOX (Glass Effect)
+================================ */
+.login-box {
+    width: 500px;
+    max-width: 100%;
+    padding: 40px;
+    border-radius: 20px;
+
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.35);
+
+    box-sizing: border-box;
+}
+
+.login-box h2 {
+    text-align: center;
+    margin-bottom: 25px;
+    font-weight: 700;
+}
+
+/* ===============================
+   FORM
+================================ */
+.login-box label {
+    display: block;
+    margin-top: 10px;
+    font-weight: 600;
+}
+
+.login-box input,
+.login-box select {
+    width: 100%;
+    padding: 12px;
+    margin-top: 6px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(255, 255, 255, 0.9);
+    color: #032F30;
+    box-sizing: border-box;
+}
+
+/* ===============================
+   BUTTON
+================================ */
+.login-box button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 20px;
+    border-radius: 8px;
+    border: none;
+
+    background: #032F30;
+    color: white;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: 0.3s ease;
+}
+
+.login-box button:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+}
+
+/* ===============================
+   ERROR MESSAGE
+================================ */
+.error {
+    background: rgba(255, 0, 0, 0.15);
+    color: #ffffff;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+/* ===============================
+   RESPONSIVE SECTION
+================================ */
+
+/* Tablet */
+@media (max-width: 1024px) {
+    .container {
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .left {
+        max-width: 100%;
+        margin-bottom: 40px;
+    }
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+    .login-box {
+        padding: 25px;
+    }
+
+    .left h1 {
+        font-size: 36px;
+    }
+
+    .left p {
+        font-size: 14px;
+    }
+}

@@ -1,0 +1,223 @@
+/* ============================= */
+/* GLOBAL */
+/* ============================= */
+
+body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: #f4f6f9;
+}
+
+.container {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* ============================= */
+/* SIDEBAR */
+/* ============================= */
+
+.sidebar {
+    width: 250px;
+    background: #0f4c4c;
+    color: white;
+    padding: 25px 20px;
+}
+
+.sidebar h2 {
+    font-size: 22px;
+    margin-bottom: 40px;
+    letter-spacing: 1px;
+}
+
+.sidebar a {
+    display: block;
+    color: #dfeeee;
+    text-decoration: none;
+    padding: 12px 15px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-size: 14px;
+}
+
+.sidebar a:hover {
+    background: rgba(255, 255, 255, 0.15);
+    padding-left: 20px;
+}
+
+.sidebar a.active {
+    background: #1b7a7a;
+    font-weight: 600;
+}
+
+.sidebar p {
+    margin-top: 30px;
+    font-size: 13px;
+    color: #cce5e5;
+}
+
+.sidebar button {
+    margin-top: 10px;
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    background: white;
+    color: #0f4c4c;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.sidebar button:hover {
+    background: #e6f2f2;
+}
+
+/* ============================= */
+/* MAIN CONTENT */
+/* ============================= */
+
+.main-content {
+    flex: 1;
+    padding: 40px;
+}
+
+.main-content h1 {
+    margin-bottom: 30px;
+    font-size: 26px;
+    color: #1f2d3d;
+}
+
+/* ============================= */
+/* DASHBOARD CARDS */
+/* ============================= */
+
+.cards {
+    display: flex;
+    gap: 25px;
+    flex-wrap: wrap;
+}
+
+.card {
+    flex: 1;
+    min-width: 200px;
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    border-left: 6px solid #1b7a7a;
+}
+
+.card:hover {
+    transform: translateY(-6px);
+}
+
+.card h3 {
+    margin: 0;
+    font-size: 15px;
+    color: #555;
+}
+
+.card p {
+    margin-top: 12px;
+    font-size: 32px;
+    font-weight: bold;
+    color: #1b7a7a;
+}
+
+/* ============================= */
+/* STATUS COLORS */
+/* ============================= */
+
+.card.pending {
+    border-left-color: #f0ad4e;
+}
+
+.card.review {
+    border-left-color: #17a2b8;
+}
+
+.card.approved {
+    border-left-color: #28a745;
+}
+
+.card.disapproved {
+    border-left-color: #dc3545;
+}
+
+.card.completed {
+    border-left-color: #6c757d;
+}
+
+/* ============================= */
+/* TABLE STYLE (For PR & PPMP) */
+/* ============================= */
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+table th {
+    background: #0f4c4c;
+    color: white;
+    padding: 12px;
+    text-align: left;
+    font-size: 14px;
+}
+
+table td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+}
+
+table tr:hover {
+    background: #f5fafa;
+}
+
+/* ============================= */
+/* BUTTONS */
+/* ============================= */
+
+.btn {
+    padding: 8px 14px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+    display: inline-block;
+    transition: 0.3s;
+}
+
+.btn-primary {
+    background: #1b7a7a;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #145c5c;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #b52a37;
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #1f7d34;
+}

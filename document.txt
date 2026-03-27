@@ -1,0 +1,1103 @@
+CONSOLIDATA SYSTEM DOCUMENTATION AND DEFENSE GUIDE
+Project path: c:\Users\hp\Consolidataa
+
+======================================================================
+1. SYSTEM OVERVIEW
+======================================================================
+ConsoliData is a role-based procurement workflow system for the University
+of Northern Philippines. The system is built with Laravel 12, PHP 8.2,
+Blade templates, MySQL-style database tables, and browser-based printing.
+
+Main roles:
+1. Admin
+   - Validates PPMP
+   - Validates Purchase Request
+   - Manages users
+   - Views consolidated reports
+   - Prints formal documents
+2. Unit / College User
+   - Creates and uploads PPMP
+   - Adds PPMP items
+   - Creates Purchase Requests from approved PPMP items
+   - Confirms approved Purchase Requests before BAC processing
+   - Views notifications, status, and remaining balances
+3. BAC
+   - Reviews confirmed requests
+   - Uploads award/failure notices
+   - Consolidates requests
+   - Records bidding, awarding, delivery, and inventory
+
+Important note for defense:
+- This project is mainly a Laravel web application using Blade views and
+  form submissions.
+- It is not an API-first SPA.
+- There is no separate public REST API layer in routes/api.php in the
+  current repository snapshot.
+
+======================================================================
+2. USED APIS, SERVICES, AND INTEGRATIONS
+======================================================================
+
+2.1 Laravel / Framework APIs used in code
+
+1. Auth facade
+   Use:
+   - Login/logout
+   - Current user lookup
+   - Role-based redirects
+   - Reviewer stamping
+   Main files:
+   - app/Http/Controllers/AuthController.php
+   - app/Http/Controllers/UnitController.php
+   - app/Http/Controllers/Admin/PpmpController.php
+   - app/Http/Controllers/Admin/PurchaseRequestController.php
+   - app/Http/Controllers/Unit/PpmpController.php
+   - app/Http/Middleware/AdminMiddleware.php
+   - app/Http/Middleware/BacMiddleware.php
+   - app/Http/Middleware/UnitMiddleware.php
+
+2. DB facade / Query Builder / DB::raw
+   Use:
+   - Joined reporting queries
+   - Aggregates and counts
+   - Report summaries
+   - Consolidation and procurement flow
+   Main files:
+   - app/Http/Controllers/Admin/PurchaseRequestController.php
+   - app/Http/Controllers/Admin/PpmpController.php
+   - app/Http/Controllers/UnitController.php
+   - app/Http/Controllers/Unit/PpmpController.php
+   - app/Http/Controllers/Bac/ProcurementFlowController.php
+   - app/Http/Controllers/Admin/UserController.php
+
+3. Eloquent ORM
+   Use:
+   - CRUD on users, PPMP, items, requests, deliveries, inventory,
+     notifications, and procurement flow records
+   Main files:
+   - app/Models/*.php
+
+4. Request validation
+   Use:
+   - Input validation for login, password reset, PPMP creation, PR creation,
+     uploads, approvals, bidding, awarding, and delivery
+   Main files:
+   - Almost all controllers use $request->validate()
+
+5. Mail facade
+   Use:
+   - Temporary password email
+   - Reset choice email
+   - Login attempt alert email
+   - New user temporary password email
+   - Workflow status email notifications
+   Main files:
+   - app/Http/Controllers/AuthController.php
+   - app/Http/Controllers/Admin/UserController.php
+   - app/Http/Controllers/Admin/PpmpController.php
+   - app/Http/Controllers/Admin/PurchaseRequestController.php
+   - app/Http/Controllers/UnitController.php
+   - app/Http/Controllers/Unit/PpmpController.php
+   - app/Http/Controllers/Bac/PurchaseRequestController.php
+
+6. Hash facade
+   Use:
+   - Password hashing
+   - Temporary password generation
+   Main files:
+   - app/Http/Controllers/AuthController.php
+   - app/Http/Controllers/Admin/UserController.php
+   - app/Models/User.php
+
+7. URL::temporarySignedRoute
+   Use:
+   - Signed password reset choice links
+   Main file:
+   - app/Http/Controllers/AuthController.php
+
+8. Schema facade
+   Use:
+   - Defensive checks for missing tables/columns
+   - Migration changes
+   Main files:
+   - database/migrations/*.php
+   - app/Http/Controllers/Unit/PpmpController.php
+   - resources/views/unit/dashboard.blade.php
+
+9. response()->json()
+   Use:
+   - JSON endpoint for dependent fund source dropdown
+   - JSON expired-session response for AJAX requests
+   Main files:
+   - app/Http/Controllers/Admin/UserController.php
+   - bootstrap/app.php
+
+10. UploadedFile -> store('public')
+    Use:
+    - BAC notice file upload
+    Main file:
+    - app/Http/Controllers/Bac/PurchaseRequestController.php
+
+11. fopen() and fgetcsv()
+    Use:
+    - CSV PPMP upload/import
+    Main file:
+    - app/Http/Controllers/Unit/PpmpController.php
+
+12. Browser print API
+    Use:
+    - Printing formal PR and consolidated documents
+    Main files:
+    - resources/views/prints/purchase-request.blade.php
+    - resources/views/prints/consolidated-request.blade.php
+    - resources/views/prints/consolidated-ppmp.blade.php
+
+13. Session and token management
+    Use:
+    - regenerate session on login
+    - invalidate session on logout
+    - CSRF-safe role switching
+    - lock failed login attempts
+    Main file:
+    - app/Http/Controllers/AuthController.php
+
+14. Carbon / date formatting
+    Use:
+    - formatted dates in views and printouts
+    Main files:
+    - controllers and Blade views
+
+15. Str helper / facade
+    Use:
+    - temporary password generation
+    - string formatting in views
+    Main files:
+    - app/Http/Controllers/AuthController.php
+    - Blade views
+
+2.2 External APIs used
+
+Current codebase finding:
+- No third-party REST API consumption was found.
+- No Http:: calls to outside services were found.
+- No PDF package, Excel package, Slack API, or payment API was found.
+- Main integrations are Laravel Mail, public file storage, JSON endpoints,
+  and browser print.
+
+2.3 App endpoints that behave like APIs
+
+1. GET /admin/fund-sources/{departmentId}
+   - Returns JSON fund sources for a selected department
+   - Used by admin user create/edit forms
+   - Controller: Admin/UserController@getFundSources
+
+2. GET /up
+   - Health route configured by Laravel bootstrap
+
+3. 419 expired-session JSON response
+   - Implemented in bootstrap/app.php for AJAX requests
+
+======================================================================
+3. WEB ROUTE / ENDPOINT MAP
+======================================================================
+Note:
+- The system mainly uses web routes, not api.php.
+- The list below is based on the registered routes.
+
+3.1 Public and Authentication Routes
+- GET / -> landing / role select
+- GET /admin/login
+- POST /admin/login
+- GET /admin/register
+- POST /admin/register
+- GET /login
+- POST /login
+- GET /forgot-password
+- POST /forgot-password
+- GET /password/reset-choice
+- POST /password/reset-choice
+- GET /change-password
+- POST /change-password
+- POST /logout
+- GET /unit/login
+- POST /unit/login
+- GET /bac/login
+- POST /bac/login
+
+3.2 Admin Routes
+- GET /admin/dashboard
+- GET /admin/users
+- GET /admin/users/create
+- POST /admin/users/store
+- GET /admin/users/{id}/edit
+- POST /admin/users/{id}/update
+- POST /admin/users/{id}/disable
+- GET /admin/fund-sources/{departmentId}
+- GET /admin/validate-request
+- POST /admin/validate-request/{id}/approve
+- POST /admin/validate-request/{id}/disapprove
+- GET /admin/consolidated-request
+- GET /admin/consolidated-request/print
+- GET /admin/reports
+- GET /admin/profile
+- GET /admin/ppmp/validate
+- GET /admin/ppmp/{id}/details
+- POST /admin/ppmp/{id}/approve
+- POST /admin/ppmp/{id}/disapprove
+- GET /admin/ppmp/consolidated
+- GET /admin/ppmp/consolidated/print
+- GET /admin/ppmp/unit
+
+3.3 Unit Routes
+- GET /dashboard
+- GET /unit/ppmp
+- GET /unit/ppmp/create
+- POST /unit/ppmp/store
+- GET /unit/ppmp/upload
+- POST /unit/ppmp/upload
+- GET /unit/ppmp/{id}/edit
+- POST /unit/ppmp/{id}/add-item
+- GET /unit/ppmp-remaining
+- GET /unit/purchase-requests
+- GET /unit/purchase-requests/create
+- POST /unit/purchase-requests
+- GET /unit/purchase-requests/{id}
+- GET /unit/purchase-requests/{id}/edit
+- POST /unit/purchase-requests/{id}
+- POST /unit/purchase-requests/{id}/submit
+- POST /unit/purchase-requests/{id}/request-correction
+- POST /unit/purchase-requests/{id}/confirm
+- GET /unit/purchase-requests/{id}/print
+- GET /unit/procurement-history
+- GET /unit/profile
+- GET /unit/notifications
+
+3.4 BAC Routes
+- GET /bac/dashboard
+- GET /bac/purchase-requests
+- GET /bac/purchase-requests/{id}
+- GET /bac/purchase-requests/{id}/print
+- POST /bac/purchase-requests/{id}/upload-notice
+- GET /bac/consolidation
+- POST /bac/consolidation/generate
+- GET /bac/biddings
+- POST /bac/biddings
+- POST /bac/biddings/{id}/award
+- GET /bac/deliveries
+- POST /bac/deliveries
+- GET /bac/inventory
+- GET /bac/profile
+- GET /bac/notifications
+
+3.5 Framework / utility routes
+- GET /storage/{path}
+- PUT /storage/{path}
+- GET /up
+
+======================================================================
+4. FILES AND THEIR USE
+======================================================================
+Note:
+- Below are the important application files in app/, resources/views/,
+  public/css/, bootstrap/, routes/, database/migrations/, and docs/.
+- Vendor files are excluded.
+
+4.1 Core / bootstrap / routing
+
+1. routes/web.php
+   - Main route map for all auth, admin, unit, BAC, print, and notification
+     endpoints.
+
+2. bootstrap/app.php
+   - Registers route files, middleware aliases, custom 419 handling, and
+     JSON response for expired AJAX sessions.
+
+3. composer.json
+   - Project package definition. Shows Laravel 12, PHP 8.2, Tinker, and
+     development tools.
+
+4. docs/unit-activity-diagrams.md
+   - Updated thesis-style activity flows for Unit, Admin, and BAC workflows.
+
+4.2 Controllers
+
+1. app/Http/Controllers/Controller.php
+   - Base controller class.
+
+2. app/Http/Controllers/AuthController.php
+   - Login/logout
+   - Role selection landing
+   - Unit fund source validation
+   - Forgot password
+   - Temporary password
+   - Signed reset-choice flow
+   - Admin registration
+   - Change password
+
+3. app/Http/Controllers/NotificationController.php
+   - Shows current user notifications
+   - Marks unread notifications as read
+
+4. app/Http/Controllers/UnitController.php
+   - Unit Purchase Request lifecycle
+   - Create, edit, submit, confirm, request correction
+   - Remaining PPMP balance checking
+   - Procurement history
+   - Unit print preparation for PR
+
+5. app/Http/Controllers/Unit/PpmpController.php
+   - Unit PPMP lifecycle
+   - Create draft PPMP
+   - Upload PPMP by CSV
+   - Edit PPMP
+   - Add items
+   - Use preset items
+   - Submit to admin
+
+6. app/Http/Controllers/Admin/UserController.php
+   - Manage users
+   - Create/edit/disable accounts
+   - Enforce department/fund source mapping
+   - Enforce one unit user per fund source
+   - Return fund sources as JSON
+
+7. app/Http/Controllers/Admin/PpmpController.php
+   - Admin PPMP review
+   - PPMP details
+   - Approve / return to draft
+   - Consolidated PPMP summary and print
+   - Unit PPMP summary
+
+8. app/Http/Controllers/Admin/PurchaseRequestController.php
+   - Admin PR review
+   - Approve / disapprove PR
+   - Consolidated Request summary and print
+   - PR reports
+   - Notify unit and BAC on PR status changes
+
+9. app/Http/Controllers/Bac/PurchaseRequestController.php
+   - BAC PR queue
+   - PR detail and print
+   - Upload award/failure notices
+
+10. app/Http/Controllers/Bac/ProcurementFlowController.php
+    - Generate consolidation
+    - Store bids
+    - Award suppliers
+    - Record deliveries
+    - Update inventory
+    - Complete linked procurement flow
+
+4.3 Models
+
+1. app/Models/User.php
+   - User record, role, department, fund source, status, and password fields.
+
+2. app/Models/Ppmp.php
+   - PPMP header/master record.
+
+3. app/Models/PpmpItem.php
+   - PPMP item detail line.
+
+4. app/Models/PurchaseRequest.php
+   - Purchase Request header/master record.
+
+5. app/Models/PurchaseRequestItem.php
+   - Purchase Request item detail line.
+
+6. app/Models/Notification.php
+   - Custom in-app notification table/model.
+
+7. app/Models/DepartmentUnit.php
+   - Department / college / office lookup table model.
+
+8. app/Models/FundSource.php
+   - Fund source lookup model.
+
+9. app/Models/Category.php
+   - Item category lookup model.
+
+10. app/Models/PresetItem.php
+    - Preset item master list used for faster PPMP item entry.
+
+11. app/Models/ConsolidatedItem.php
+    - BAC consolidated procurement item.
+
+12. app/Models/ConsolidatedItemSource.php
+    - Source mapping from PR items to consolidated item.
+
+13. app/Models/Bidding.php
+    - Supplier bidding record.
+
+14. app/Models/Delivery.php
+    - Delivery/receiving record.
+
+15. app/Models/Inventory.php
+    - Final inventory balance after delivery.
+
+4.4 Middleware
+
+1. app/Http/Middleware/AdminMiddleware.php
+   - Restricts admin pages to admin users.
+
+2. app/Http/Middleware/BacMiddleware.php
+   - Restricts BAC pages to BAC users.
+
+3. app/Http/Middleware/UnitMiddleware.php
+   - Restricts unit pages to unit users.
+
+4. app/Http/Middleware/NoCache.php
+   - Prevents back-button cache reuse on protected pages.
+
+4.5 Shared Blade layouts / partials
+
+1. resources/views/admin/layout.blade.php
+   - Base admin layout, sidebar, flash messages, modal include.
+
+2. resources/views/unit/layout.blade.php
+   - Base unit layout, sidebar, flash messages, modal include.
+
+3. resources/views/bac/layout.blade.php
+   - Base BAC layout, sidebar, flash messages, modal include.
+
+4. resources/views/partials/system-confirm-modal.blade.php
+   - Shared in-system confirmation modal and JS submit interception.
+
+5. resources/views/auth/partials/no-cache-guard.blade.php
+   - Extra no-cache and pageshow/back-forward handling.
+
+4.6 Auth views
+
+1. resources/views/auth/role-select.blade.php
+   - Landing page for selecting portal/role.
+
+2. resources/views/auth/admin-login.blade.php
+   - Admin login page.
+
+3. resources/views/auth/unit-login.blade.php
+   - Unit login page with assigned fund source selection.
+
+4. resources/views/auth/bac-login.blade.php
+   - BAC login page.
+
+5. resources/views/auth/login.blade.php
+   - Generic login view / alternate login view.
+
+6. resources/views/auth/admin-register.blade.php
+   - Admin registration page.
+
+7. resources/views/auth/forgot-password.blade.php
+   - Starts password recovery.
+
+8. resources/views/auth/reset-password-choice.blade.php
+   - Allows direct reset after clicking signed email link.
+
+9. resources/views/auth/change-password.blade.php
+   - Used for forced or manual password change.
+
+4.7 Admin views
+
+1. resources/views/admin/dashboard.blade.php
+   - Admin dashboard and metrics.
+
+2. resources/views/admin/profile.blade.php
+   - Admin account/profile page.
+
+3. resources/views/admin/users/index.blade.php
+   - Admin user list.
+
+4. resources/views/admin/users/create.blade.php
+   - Admin create-user form.
+
+5. resources/views/admin/users/edit.blade.php
+   - Admin edit-user form.
+
+6. resources/views/admin/requests/validate.blade.php
+   - Admin PR validation page.
+
+7. resources/views/admin/requests/consolidated.blade.php
+   - Consolidated Request summary page.
+
+8. resources/views/admin/requests/reports.blade.php
+   - PR reporting page.
+
+9. resources/views/admin/ppmp/validate.blade.php
+   - Admin PPMP validation queue.
+
+10. resources/views/admin/ppmp/show.blade.php
+    - PPMP detailed view.
+
+11. resources/views/admin/ppmp/consolidated.blade.php
+    - Consolidated PPMP summary page.
+
+12. resources/views/admin/ppmp/unit.blade.php
+    - PPMP grouped/listed by unit.
+
+4.8 Unit views
+
+1. resources/views/unit/dashboard.blade.php
+   - Unit dashboard and counts.
+
+2. resources/views/unit/profile.blade.php
+   - Unit profile page.
+
+3. resources/views/unit/notifications/index.blade.php
+   - Unit notifications page.
+
+4. resources/views/unit/ppmp/index.blade.php
+   - Unit PPMP list.
+
+5. resources/views/unit/ppmp/create.blade.php
+   - Unit create PPMP form.
+
+6. resources/views/unit/ppmp/upload.blade.php
+   - Unit CSV PPMP upload form.
+
+7. resources/views/unit/ppmp/edit.blade.php
+   - Unit PPMP edit / add-item page.
+
+8. resources/views/unit/ppmp/remaining.blade.php
+   - Remaining PPMP balance page.
+
+9. resources/views/unit/purchase_requests/index.blade.php
+   - Unit PR list with status and actions.
+
+10. resources/views/unit/purchase_requests/create.blade.php
+    - Unit PR create form from approved PPMP items.
+
+11. resources/views/unit/purchase_requests/edit.blade.php
+    - Unit PR edit form.
+
+12. resources/views/unit/purchase_requests/show.blade.php
+    - Unit PR detail page, notices, submit/confirm actions.
+
+13. resources/views/unit/purchase_requests/history.blade.php
+    - Completed procurement history view.
+
+4.9 BAC views
+
+1. resources/views/bac/dashboard.blade.php
+   - BAC dashboard.
+
+2. resources/views/bac/profile.blade.php
+   - BAC profile.
+
+3. resources/views/bac/notifications/index.blade.php
+   - BAC notifications.
+
+4. resources/views/bac/requests/index.blade.php
+   - BAC PR queue list.
+
+5. resources/views/bac/requests/show.blade.php
+   - BAC PR detail and notice upload page.
+
+6. resources/views/bac/consolidation/index.blade.php
+   - BAC consolidation page.
+
+7. resources/views/bac/biddings/index.blade.php
+   - BAC bidding page.
+
+8. resources/views/bac/deliveries/index.blade.php
+   - BAC delivery recording page.
+
+9. resources/views/bac/inventory/index.blade.php
+   - BAC inventory page.
+
+4.10 Print views
+
+1. resources/views/prints/purchase-request.blade.php
+   - Formal print layout for a single Purchase Request.
+
+2. resources/views/prints/consolidated-request.blade.php
+   - Formal print layout for Consolidated Request using purchase_request_items
+     and custom purpose prompt.
+
+3. resources/views/prints/consolidated-ppmp.blade.php
+   - Formal print layout for Consolidated PPMP summary.
+
+4.11 Email views
+
+1. resources/views/emails/login-attempt-alert.blade.php
+   - Email sent after repeated failed login attempts.
+
+2. resources/views/emails/temporary-password.blade.php
+   - Password recovery email with reset option and temporary password.
+
+3. resources/views/emails/new-user-temp-password.blade.php
+   - New account / temporary password email.
+
+4.12 Other Blade file
+
+1. resources/views/welcome.blade.php
+   - Default Laravel welcome view; not part of the main workflow.
+
+4.13 CSS files
+
+1. public/css/portal.css
+   - Main portal styling for admin, unit, BAC, tables, cards, modal, layout.
+
+2. public/css/auth.css
+   - Auth pages styling.
+
+3. public/css/landing.css
+   - Landing page styling.
+
+4. public/css/app.css
+   - Default application CSS entry file.
+
+5. public/css/unit.css
+   - Older / secondary unit-specific CSS.
+
+6. public/css/bac-login.css
+   - Older / secondary BAC login CSS.
+
+4.14 Migrations
+
+1. database/migrations/0001_01_01_000000_create_users_table.php
+   - Creates users table.
+
+2. database/migrations/0001_01_01_000001_create_cache_table.php
+   - Creates cache table.
+
+3. database/migrations/0001_01_01_000002_create_jobs_table.php
+   - Creates jobs table.
+
+4. database/migrations/2026_02_28_025205_add_security_fields_to_users_table.php
+   - Adds status and must_change_password fields to users.
+
+5. database/migrations/2026_02_28_040841_add_additional_fields_to_users_table.php
+   - Adds extra user profile fields like department and fund mapping.
+
+6. database/migrations/2026_02_28_041627_add_role_to_users_table.php
+   - Adds user role field.
+
+7. database/migrations/2026_02_28_041931_create_ppmps_table.php
+   - Creates PPMP master/header table.
+
+8. database/migrations/2026_02_28_041932_create_ppmp_items_table.php
+   - Creates PPMP item table.
+
+9. database/migrations/2026_02_28_042303_add_status_to_purchase_requests_table.php
+   - Adds status field to purchase_requests.
+
+10. database/migrations/2026_02_28_051553_add_user_id_to_purchase_requests_table.php
+    - Adds user_id to purchase_requests.
+
+11. database/migrations/2026_03_14_044500_expand_ppmps_status_enum_to_include_draft.php
+    - Adds Draft status support to PPMP status enum.
+
+12. database/migrations/2026_03_14_050000_extend_ppmps_for_procurement_flow.php
+    - Extends PPMP for review/submission workflow.
+
+13. database/migrations/2026_03_14_050100_extend_ppmp_items_for_procurement_flow.php
+    - Extends PPMP items for quarter totals and procurement flow support.
+
+14. database/migrations/2026_03_14_050200_extend_purchase_requests_for_procurement_flow.php
+    - Extends purchase_requests with PPMP link and review fields.
+
+15. database/migrations/2026_03_14_050300_extend_purchase_request_items_for_procurement_flow.php
+    - Adds ppmp_item_id traceability to purchase_request_items.
+
+16. database/migrations/2026_03_14_050400_create_consolidation_bidding_and_delivery_tables.php
+    - Creates consolidated items, sources, biddings, deliveries tables.
+
+17. database/migrations/2026_03_14_053300_fix_purchase_request_items_id_autoincrement.php
+    - Fixes purchase_request_items primary key / auto increment issue.
+
+18. database/migrations/2026_03_14_054500_create_inventories_table.php
+    - Creates inventories table.
+
+19. database/migrations/2026_03_14_060000_extend_purchase_requests_for_unit_flow.php
+    - Adds purpose and confirmed_at for unit confirmation flow.
+
+Important defense note:
+- The code uses some tables whose create-migrations are not visible in the
+  current repository snapshot, such as purchase_requests, purchase_request_items,
+  notifications, department_units, fund_sources, categories, and preset_items.
+- Be ready to explain that the live database/schema may already exist or
+  that some migration files are outside the current snapshot.
+
+======================================================================
+5. DATABASE TABLES AND RELATIONSHIPS
+======================================================================
+
+Core tables:
+1. users
+   - login account
+   - role
+   - department_unit_id
+   - fund_source_id
+   - status
+   - must_change_password
+
+2. ppmps
+   - PPMP header/master
+   - belongs to a user
+   - linked to department and fund source
+
+3. ppmp_items
+   - items inside a PPMP
+   - stores quantity, unit, unit_cost, estimated_budget, quarter data
+
+4. purchase_requests
+   - PR header/master
+   - linked to user and PPMP
+   - stores purpose, status, submitted_at, confirmed_at, review fields
+
+5. purchase_request_items
+   - items inside a PR
+   - linked to source ppmp_item_id for traceability
+
+6. notifications
+   - in-app notification table
+
+7. department_units
+   - lookup for colleges/offices
+
+8. fund_sources
+   - lookup for available fund sources
+
+9. categories
+   - item categories
+
+10. preset_items
+    - master item list used in PPMP entry
+
+BAC tables:
+11. consolidated_items
+12. consolidated_item_sources
+13. biddings
+14. deliveries
+15. inventories
+
+Main relationship explanation:
+- One user can have many PPMPs.
+- One PPMP can have many PPMP items.
+- One PPMP can be the source of many Purchase Requests.
+- One Purchase Request can have many Purchase Request items.
+- Each Purchase Request item can point back to one PPMP item.
+- Confirmed PR items can be merged into consolidated_items.
+- Awarded items can proceed to deliveries and then inventories.
+
+======================================================================
+6. MAIN WORKFLOW SUMMARY
+======================================================================
+
+6.1 Authentication flow
+1. User picks role from landing page.
+2. User logs in on role-specific page.
+3. System validates credentials.
+4. Unit users must also choose the correct fund source.
+5. Session is regenerated.
+6. User is redirected by role.
+
+6.2 PPMP flow
+1. Unit creates or uploads PPMP.
+2. PPMP starts as Draft or Submitted.
+3. Unit adds PPMP items manually or from preset items.
+4. Admin reviews PPMP.
+5. Admin approves or returns PPMP to draft.
+6. Approved PPMP becomes source for Purchase Requests.
+
+6.3 Purchase Request flow
+1. Unit creates PR from approved PPMP items.
+2. System checks remaining quantity and remaining budget.
+3. PR starts as Draft.
+4. Unit submits PR to admin.
+5. Admin approves or disapproves.
+6. If Approved, the unit must confirm.
+7. Only after confirmation can BAC continue processing.
+
+6.4 BAC procurement flow
+1. BAC sees approved/confirmed requests.
+2. BAC uploads failure or award notice.
+3. BAC consolidates confirmed requests.
+4. BAC stores bids and awards a supplier.
+5. BAC records deliveries.
+6. System updates inventory.
+
+Status lifecycle for PR:
+Draft -> Submitted -> Approved -> Confirmed -> Completed
+Alternative failure path:
+Submitted -> Disapproved
+
+======================================================================
+7. SECURITY AND VALIDATION FEATURES
+======================================================================
+
+1. Role-based middleware
+   - Admin, Unit, BAC cannot access each other's areas.
+
+2. Session regeneration
+   - On successful login.
+
+3. Logout invalidation
+   - Session invalidated and token regenerated on logout.
+
+4. Secure landing page behavior
+   - Returning to role selection logs out the current user.
+
+5. No-cache protection
+   - Prevents back-button reuse of protected pages.
+
+6. Three failed login attempts lock
+   - The system sends an email after repeated failed attempts.
+
+7. Signed password reset choice link
+   - Reset link is time-limited and tied to current password hash.
+
+8. must_change_password flag
+   - Temporary passwords force the user to change password.
+
+9. Unit fund-source validation
+   - Unit must choose the fund source that matches the account.
+
+10. Quantity and budget validation
+    - PR cannot exceed remaining approved PPMP balance.
+
+11. Custom in-system confirmation modal
+    - Replaces browser confirm() popups.
+
+12. 419 session-expired recovery
+    - Redirects back safely with proper message.
+
+======================================================================
+8. POSSIBLE DEFENSE QUESTIONS AND SAMPLE ANSWERS
+======================================================================
+
+1. What kind of system is this?
+   Answer:
+   It is a Laravel 12 web-based procurement workflow system with three
+   role-based portals: Admin, Unit, and BAC.
+
+2. Is this system API-first?
+   Answer:
+   No. It mainly uses Blade views and web routes. It only has small helper
+   JSON endpoints like the fund source lookup.
+
+3. What framework did you use and why?
+   Answer:
+   I used Laravel because it already provides routing, authentication,
+   validation, ORM, mailer, middleware, and secure session handling.
+
+4. What are the main modules of the system?
+   Answer:
+   Authentication, PPMP management, Purchase Request management, Admin
+   validation, BAC procurement flow, notifications, printing, and reporting.
+
+5. What is the purpose of PPMP in your system?
+   Answer:
+   PPMP is the procurement planning document. It defines planned items,
+   quantities, budget, and approved source data before a Purchase Request
+   can be created.
+
+6. Why did you separate Admin, Unit, and BAC?
+   Answer:
+   Because each role has different responsibilities and permissions, so the
+   code uses role-based middleware and separate route groups.
+
+7. How do you stop a unit from seeing another unit's records?
+   Answer:
+   Queries in UnitController and Unit/PpmpController are filtered using the
+   currently authenticated user ID.
+
+8. How do you validate the unit fund source during login?
+   Answer:
+   The selected fund_source_id is checked against the user's assigned
+   fund_source_id and department_unit_id in AuthController.
+
+9. How do you handle password recovery?
+   Answer:
+   The system sends a temporary password and a signed reset-choice link.
+   The user can reset immediately or log in with the temporary password and
+   change it inside the system.
+
+10. Why use a signed reset link?
+    Answer:
+    It adds security by expiring after a set time and becoming invalid once
+    the password changes.
+
+11. How is brute-force login handled?
+    Answer:
+    The system counts failed attempts in session, locks after three failures,
+    and sends a login-attempt alert email.
+
+12. How does the admin review PPMP?
+    Answer:
+    Admin opens the PPMP validation module, reviews the submitted PPMP and
+    items, then approves it or returns it to draft with remarks.
+
+13. How does the admin review Purchase Requests?
+    Answer:
+    Admin checks submitted PRs, validates item details and purpose, then
+    approves or disapproves with review remarks.
+
+14. Why is there a Confirmed status after Approved?
+    Answer:
+    Because the approved request must still be acknowledged by the unit
+    before BAC can process it.
+
+15. How do you prevent a PR from exceeding PPMP balance?
+    Answer:
+    The system computes remaining quantity and remaining budget using
+    remainingMetrics() before submission and confirmation.
+
+16. How is traceability maintained between PPMP and PR?
+    Answer:
+    purchase_requests stores ppmp_id and purchase_request_items stores
+    ppmp_item_id so each requested item can be traced back to its source.
+
+17. How does BAC consolidation work?
+    Answer:
+    Confirmed request items are grouped into consolidated items, and their
+    source links are stored in consolidated_item_sources.
+
+18. How does bidding work in the system?
+    Answer:
+    BAC stores supplier bids, then selects a winner. The winning bid is
+    marked Won while other bids can be marked Lost.
+
+19. How is delivery connected to inventory?
+    Answer:
+    Once BAC records a delivery, the system creates or updates inventory
+    records using the delivered quantity.
+
+20. How are notices handled?
+    Answer:
+    BAC uploads award or failure notice files to the public storage disk,
+    and the file path is saved on the purchase request.
+
+21. How is printing implemented?
+    Answer:
+    The system uses dedicated print Blade views and browser-based
+    window.print() instead of a PDF package.
+
+22. Why did you use both Eloquent and DB query builder?
+    Answer:
+    Eloquent is used for standard entity operations, while DB query builder
+    is better for grouped summaries, joins, and raw aggregates.
+
+23. Why did you use a custom Notification model instead of Laravel
+    notification classes?
+    Answer:
+    The current implementation uses a simple database-backed custom model,
+    which was easier to control for the current workflow.
+
+24. Why are emails wrapped in try/catch?
+    Answer:
+    Because email failure should not stop the business process. The database
+    notification remains the reliable audit trail.
+
+25. How is CSV import implemented?
+    Answer:
+    The system uses fopen() and fgetcsv() to read uploaded PPMP CSV files,
+    map columns, validate values, and create PPMP item records.
+
+26. What is one important security feature of the system?
+    Answer:
+    The no-cache and session invalidation logic prevents the user from going
+    back to protected pages after logout using the browser back button.
+
+27. What is the most important relationship in the database?
+    Answer:
+    The link between PPMP, PPMP items, Purchase Request, and Purchase
+    Request items because it preserves planning-to-request traceability.
+
+28. Why does the system use review_remarks?
+    Answer:
+    It allows the reviewer to explain why a PPMP or PR was rejected or
+    returned, which helps the user correct the document.
+
+29. What should you say if asked whether there is a mobile app?
+    Answer:
+    This is a responsive web system, not a separate mobile application.
+
+30. What should you say if asked whether this system uses external payment
+    or procurement APIs?
+    Answer:
+    It does not currently use external procurement/payment APIs. It is an
+    internal workflow and document management system.
+
+======================================================================
+9. POSSIBLE PANEL QUESTIONS ABOUT CODE QUALITY OR LIMITATIONS
+======================================================================
+
+1. Why are there missing create-migrations for some tables?
+   Suggested answer:
+   The current repository snapshot does not show all create-migrations, but
+   the live database already contains the needed tables. The code still
+   documents and uses those tables consistently.
+
+2. Why no queue for emails?
+   Suggested answer:
+   The current version sends emails synchronously for simplicity, but it can
+   be improved later by moving mails to queued jobs.
+
+3. Why no PDF generation?
+   Suggested answer:
+   The current requirement was satisfied using browser print views for fast
+   deployment and easy layout control.
+
+4. Why no policies/gates?
+   Suggested answer:
+   Access control is currently enforced mainly by route middleware and
+   controller ownership checks. Policies can be added later as a refactor.
+
+5. Why mix some logic in Blade and controllers?
+   Suggested answer:
+   Most business logic is in controllers, but some dashboard display metrics
+   and print formatting remain in Blade for direct presentation.
+
+6. Are all status labels consistent everywhere?
+   Suggested answer:
+   The main PR workflow is Draft -> Submitted -> Approved -> Confirmed ->
+   Completed, but some old labels may still appear in a few views and can be
+   standardized further.
+
+======================================================================
+10. SHORT DEFENSE CHEAT SHEET
+======================================================================
+
+If the panel asks:
+
+"What is the heart of the system?"
+Answer:
+The heart of the system is the traceable workflow from PPMP planning to
+Purchase Request approval, unit confirmation, BAC processing, delivery, and
+inventory.
+
+"What is the most important security check?"
+Answer:
+Role middleware, fund source validation for unit login, and no-cache session
+protection are the most important security controls in this code.
+
+"What is the most important code relationship?"
+Answer:
+The most important relationship is PPMP -> PPMP items -> Purchase Request ->
+Purchase Request items -> BAC procurement flow tables.
+
+"Why is this system useful?"
+Answer:
+It reduces manual tracking, keeps procurement records centralized, enforces
+approval steps, preserves item traceability, and improves reporting/printing.
+
+======================================================================
+11. FINAL NOTE FOR DEFENSE
+======================================================================
+
+Do not say:
+"This project has many APIs."
+
+Say:
+"This project is mainly a Laravel web system using built-in framework
+services such as Auth, DB, Mail, validation, file storage, session handling,
+and browser print, plus one internal JSON endpoint for dependent dropdowns."
+
+Do not say:
+"Everything is automatic."
+
+Say:
+"The system automates the workflow logic, validation, and reporting, but it
+still follows real approval decisions by Admin, Unit, and BAC users."
+
+End of document.
