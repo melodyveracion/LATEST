@@ -1,65 +1,82 @@
 @extends('unit.layout')
-
-@section('title', 'Create PPMP - ConsoliData')
+@section('title', 'Create PPMP — ConsoliData')
 
 @section('content')
-<div class="page-header">
+
+{{-- Page header --}}
+<div class="flex items-center justify-between gap-4 mb-6">
     <div>
-        <h1>Create PPMP</h1>
-        <p>Start a new PPMP under your assigned unit and choose which fund source it belongs to.</p>
+        <div class="flex items-center gap-2 text-sm text-slate-400 mb-1">
+            <a href="{{ route('unit.ppmp.index') }}" class="hover:text-slate-600 transition-colors">PPMP</a>
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m9 18 6-6-6-6"/></svg>
+            <span class="text-slate-600">Create</span>
+        </div>
+        <h1 class="text-2xl font-bold text-slate-900">Create PPMP</h1>
+        <p class="text-sm text-slate-500 mt-0.5">Start a new procurement plan. After creating, add quarterly item entries then submit.</p>
     </div>
-    <a href="{{ route('unit.ppmp.index') }}" class="btn btn-primary">Back to PPMP List</a>
+    <a href="{{ route('unit.ppmp.index') }}" class="btn-secondary btn-sm flex-shrink-0">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m15 18-6-6 6-6"/></svg>
+        Back
+    </a>
 </div>
 
-<div class="page-card">
-    <h2>Unit Account Details</h2>
-    <div class="info-grid">
-        <div class="info-item">
-            <span class="info-label">Department / Unit</span>
-            <div class="info-value">{{ $departmentName ?: 'Not assigned yet' }}</div>
+{{-- Account info --}}
+<div class="ui-card">
+    <h2 class="ui-card-title">Unit Details</h2>
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Department / Unit</p>
+            <p class="text-sm font-medium text-slate-800">{{ $departmentName ?: 'Not assigned' }}</p>
         </div>
-        <div class="info-item">
-            <span class="info-label">Current Dashboard View</span>
-            <div class="info-value">{{ $fundSourceName ?: 'No fund sources available' }}</div>
+        <div>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Active Fund Source</p>
+            <p class="text-sm font-medium text-slate-800">{{ $fundSourceName ?: 'None selected' }}</p>
         </div>
     </div>
 </div>
 
-<div class="page-card">
-    <h2>Create Draft PPMP</h2>
-    <p class="helper-text">
-        Create the PPMP header first. After that, you can add quarterly item entries and submit the plan for review.
+{{-- Create form --}}
+<div class="ui-card">
+    <h2 class="ui-card-title">New Draft PPMP</h2>
+    <p class="text-sm text-slate-500 mb-5">
+        Choose a fund source and fiscal year. Items are added after the plan is created.
     </p>
 
     <form action="{{ route('unit.ppmp.store') }}" method="POST" data-confirm="Create a new draft PPMP?">
         @csrf
         <input type="hidden" name="status" value="Draft">
 
-        <label for="fund_source_id">Fund Source</label>
-        <select id="fund_source_id" name="fund_source_id" required>
-            <option value="">Select Fund Source</option>
-            @foreach($fundSources as $fundSource)
-                <option value="{{ $fundSource->id }}" {{ (string) old('fund_source_id', $activeFundSourceId) === (string) $fundSource->id ? 'selected' : '' }}>
-                    {{ $fundSource->name }}
-                </option>
-            @endforeach
-        </select>
-        <p class="helper-text">
-            Choose which fund source this PPMP should belong to.
-        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
+            <div>
+                <label for="fund_source_id" class="field-label">Fund Source <span class="text-red-500">*</span></label>
+                <select id="fund_source_id" name="fund_source_id" required class="field-input">
+                    <option value="">Select Fund Source</option>
+                    @foreach($fundSources as $fs)
+                        <option value="{{ $fs->id }}" {{ (string) old('fund_source_id', $activeFundSourceId) === (string) $fs->id ? 'selected' : '' }}>
+                            {{ $fs->name }}
+                        </option>
+                    @endforeach
+                </select>
+                <p class="field-hint">Which fund source this PPMP belongs to.</p>
+            </div>
+            <div>
+                <label for="fiscal_year" class="field-label">Fiscal Year <span class="text-red-500">*</span></label>
+                <input type="number" id="fiscal_year" name="fiscal_year"
+                       min="2000" max="2100"
+                       value="{{ old('fiscal_year', $currentYear) }}"
+                       required class="field-input">
+            </div>
+        </div>
 
-        <label for="fiscal_year">Fiscal Year</label>
-        <input
-            type="number"
-            id="fiscal_year"
-            name="fiscal_year"
-            min="2000"
-            max="2100"
-            value="{{ old('fiscal_year', $currentYear) }}"
-            required
-        >
-
-        <button type="submit" class="btn-create" {{ $fundSources->isEmpty() ? 'disabled' : '' }}>Create Draft PPMP</button>
+        <div class="flex justify-end">
+            <button type="submit" class="btn-primary" {{ $fundSources->isEmpty() ? 'disabled' : '' }}>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                </svg>
+                Create Draft PPMP
+            </button>
+        </div>
     </form>
 </div>
+
 @endsection

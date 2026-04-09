@@ -1,132 +1,110 @@
-<div class="system-confirm-overlay" id="system-confirm-overlay" hidden>
-    <div
-        class="system-confirm-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="system-confirm-title"
-        aria-describedby="system-confirm-message"
-    >
-        <div class="system-confirm-copy">
-            <h3 id="system-confirm-title">Confirm Action</h3>
-            <p id="system-confirm-message">Are you sure you want to continue?</p>
+<div id="system-confirm-overlay"
+     hidden
+     style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);backdrop-filter:blur(2px);">
+    <div role="dialog"
+         aria-modal="true"
+         aria-labelledby="system-confirm-title"
+         aria-describedby="system-confirm-message"
+         style="background:#fff;border-radius:1rem;box-shadow:0 20px 60px rgba(0,0,0,0.2);padding:1.75rem 2rem;max-width:420px;width:calc(100% - 2rem);margin:1rem;">
+        <div style="margin-bottom:1.25rem;">
+            <h3 id="system-confirm-title"
+                style="font-size:1.0625rem;font-weight:700;color:#111827;margin:0 0 0.5rem;">
+                Confirm Action
+            </h3>
+            <p id="system-confirm-message"
+               style="font-size:0.875rem;color:#6b7280;margin:0;line-height:1.5;">
+                Are you sure you want to continue?
+            </p>
         </div>
-
-        <div class="system-confirm-actions">
-            <button type="button" class="btn-edit" id="system-confirm-cancel">Cancel</button>
-            <button type="button" class="btn-primary" id="system-confirm-accept">Continue</button>
+        <div style="display:flex;justify-content:flex-end;gap:0.625rem;">
+            <button type="button"
+                    id="system-confirm-cancel"
+                    style="padding:0.5rem 1.125rem;border-radius:0.5rem;font-size:0.8125rem;font-weight:600;background:#fff;color:#374151;border:1px solid #d1d5db;cursor:pointer;transition:background 0.15s;">
+                Cancel
+            </button>
+            <button type="button"
+                    id="system-confirm-accept"
+                    style="padding:0.5rem 1.125rem;border-radius:0.5rem;font-size:0.8125rem;font-weight:600;background:#2563eb;color:#fff;border:none;cursor:pointer;transition:background 0.15s;">
+                Continue
+            </button>
         </div>
     </div>
 </div>
 
 <script>
     (function () {
-        const overlay = document.getElementById('system-confirm-overlay');
-        const titleElement = document.getElementById('system-confirm-title');
-        const messageElement = document.getElementById('system-confirm-message');
-        const cancelButton = document.getElementById('system-confirm-cancel');
-        const acceptButton = document.getElementById('system-confirm-accept');
+        const overlay       = document.getElementById('system-confirm-overlay');
+        const titleEl       = document.getElementById('system-confirm-title');
+        const messageEl     = document.getElementById('system-confirm-message');
+        const cancelBtn     = document.getElementById('system-confirm-cancel');
+        const acceptBtn     = document.getElementById('system-confirm-accept');
 
-        if (!overlay || !titleElement || !messageElement || !cancelButton || !acceptButton) {
-            return;
-        }
+        if (!overlay) return;
 
         let pendingForm = null;
-        let pendingSubmitter = null;
-        let lastFocusedElement = null;
+        let lastFocus   = null;
 
-        function closeConfirmModal() {
+        function close() {
             overlay.hidden = true;
-            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
             pendingForm = null;
-            pendingSubmitter = null;
-
-            if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
-                lastFocusedElement.focus();
-            }
+            if (lastFocus && lastFocus.focus) lastFocus.focus();
         }
 
-        function openConfirmModal(form, submitter) {
+        function open(form, submitter) {
             pendingForm = form;
-            pendingSubmitter = submitter || null;
-            lastFocusedElement = document.activeElement;
-
-            titleElement.textContent = form.getAttribute('data-confirm-title') || 'Confirm Action';
-            messageElement.textContent = form.getAttribute('data-confirm') || 'Are you sure you want to continue?';
-            acceptButton.textContent = form.getAttribute('data-confirm-action-label')
+            lastFocus   = document.activeElement;
+            titleEl.textContent   = form.dataset.confirmTitle   || 'Confirm Action';
+            messageEl.textContent = form.dataset.confirm        || 'Are you sure you want to continue?';
+            acceptBtn.textContent = form.dataset.confirmActionLabel
                 || (submitter && submitter.textContent ? submitter.textContent.trim() : 'Continue');
-
             overlay.hidden = false;
-            document.body.classList.add('modal-open');
-            acceptButton.focus();
+            document.body.style.overflow = 'hidden';
+            acceptBtn.focus();
         }
 
-        function submitPendingForm() {
-            if (!pendingForm) {
-                return;
+        function submit() {
+            if (!pendingForm) return;
+            const f = pendingForm;
+            const s = f.__lastSubmitter || null;
+            delete f.__lastSubmitter;
+            close();
+            if (s && s.name) {
+                const inp = document.createElement('input');
+                inp.type  = 'hidden';
+                inp.name  = s.name;
+                inp.value = s.value;
+                f.appendChild(inp);
             }
-
-            const formToSubmit = pendingForm;
-            const submitterToUse = pendingSubmitter || formToSubmit.__lastSubmitter || null;
-            delete formToSubmit.__lastSubmitter;
-
-            closeConfirmModal();
-
-            if (submitterToUse && submitterToUse.name) {
-                const submitterInput = document.createElement('input');
-                submitterInput.type = 'hidden';
-                submitterInput.name = submitterToUse.name;
-                submitterInput.value = submitterToUse.value;
-                formToSubmit.appendChild(submitterInput);
-            }
-
-            HTMLFormElement.prototype.submit.call(formToSubmit);
+            HTMLFormElement.prototype.submit.call(f);
         }
 
-        document.addEventListener('click', function (event) {
-            const submitter = event.target.closest('button[type="submit"], input[type="submit"]');
-
-            if (!submitter || !submitter.form || !submitter.form.matches('form[data-confirm]')) {
-                return;
+        document.addEventListener('click', e => {
+            const s = e.target.closest('button[type="submit"],input[type="submit"]');
+            if (s && s.form && s.form.matches('form[data-confirm]')) {
+                s.form.__lastSubmitter = s;
             }
-
-            submitter.form.__lastSubmitter = submitter;
         }, true);
 
-        document.addEventListener('submit', function (event) {
-            const form = event.target;
-
-            if (!(form instanceof HTMLFormElement) || !form.matches('form[data-confirm]')) {
-                return;
-            }
-
-            event.preventDefault();
-            event.stopPropagation();
-
-            if (typeof event.stopImmediatePropagation === 'function') {
-                event.stopImmediatePropagation();
-            }
-
-            openConfirmModal(form, event.submitter || form.__lastSubmitter || null);
+        document.addEventListener('submit', e => {
+            const form = e.target;
+            if (!(form instanceof HTMLFormElement) || !form.matches('form[data-confirm]')) return;
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            open(form, e.submitter || form.__lastSubmitter || null);
         }, true);
 
-        cancelButton.addEventListener('click', closeConfirmModal);
-        acceptButton.addEventListener('click', submitPendingForm);
-
-        overlay.addEventListener('click', function (event) {
-            if (event.target === overlay) {
-                closeConfirmModal();
-            }
+        cancelBtn.addEventListener('click', close);
+        acceptBtn.addEventListener('click', submit);
+        overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+        document.addEventListener('keydown', e => {
+            if (!overlay.hidden && e.key === 'Escape') { e.preventDefault(); close(); }
         });
 
-        document.addEventListener('keydown', function (event) {
-            if (overlay.hidden) {
-                return;
-            }
-
-            if (event.key === 'Escape') {
-                event.preventDefault();
-                closeConfirmModal();
-            }
-        });
+        /* Hover styles */
+        cancelBtn.addEventListener('mouseenter', () => cancelBtn.style.background = '#f9fafb');
+        cancelBtn.addEventListener('mouseleave', () => cancelBtn.style.background = '#fff');
+        acceptBtn.addEventListener('mouseenter', () => acceptBtn.style.background = '#1d4ed8');
+        acceptBtn.addEventListener('mouseleave', () => acceptBtn.style.background = '#2563eb');
     })();
 </script>

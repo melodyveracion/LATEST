@@ -1,290 +1,311 @@
 @extends('unit.layout')
-
-@section('title', 'Edit PPMP - ConsoliData')
+@section('title', 'Edit PPMP — ConsoliData')
 
 @section('content')
+
 @php
-    $statusClass = match ($ppmp->status) {
-        'Submitted' => 'status-badge status-submitted',
-        'Approved' => 'status-badge status-approved',
-        default => 'status-badge status-draft',
+    $isDraft = $ppmp->status === 'Draft';
+    $sClass  = match ($ppmp->status) {
+        'Submitted'   => 'status-badge status-submitted',
+        'Approved'    => 'status-badge status-approved',
+        'Disapproved' => 'status-badge status-disapproved',
+        default       => 'status-badge status-draft',
     };
 @endphp
-<div class="page-header">
+
+{{-- Page header --}}
+<div class="flex items-start justify-between gap-4 mb-6">
     <div>
-        <h1>{{ $ppmp->ppmp_no ?: ('PPMP Draft Ref #' . $ppmp->id) }}</h1>
-        <p>Add item entries, review the current item list, and submit the PPMP once everything is ready.</p>
+        <div class="flex items-center gap-2 text-sm text-slate-400 mb-1">
+            <a href="{{ route('unit.ppmp.index') }}" class="hover:text-slate-600 transition-colors">PPMP</a>
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m9 18 6-6-6-6"/></svg>
+            <span class="text-slate-600">{{ $ppmp->ppmp_no ?: 'Draft #'.$ppmp->id }}</span>
+        </div>
+        <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-3">
+            {{ $ppmp->ppmp_no ?: 'PPMP Draft #'.$ppmp->id }}
+            <span class="{{ $sClass }}">{{ $ppmp->status }}</span>
+        </h1>
+        <p class="text-sm text-slate-500 mt-0.5">Add item entries, then submit the PPMP for admin validation.</p>
     </div>
-    <a href="{{ route('unit.ppmp.index') }}" class="btn btn-primary">Back to PPMP List</a>
+    <a href="{{ route('unit.ppmp.index') }}" class="btn-secondary btn-sm flex-shrink-0">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m15 18-6-6 6-6"/></svg>
+        Back
+    </a>
 </div>
 
-<div class="page-card">
-    <h2>PPMP Details</h2>
-    <div class="info-grid">
-        <div class="info-item">
-            <span class="info-label">Fiscal Year</span>
-            <div class="info-value">{{ $ppmp->fiscal_year ?: '-' }}</div>
+{{-- PPMP Details --}}
+<div class="ui-card">
+    <h2 class="ui-card-title">PPMP Details</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-4">
+        <div>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Fiscal Year</p>
+            <p class="text-sm font-medium text-slate-800">{{ $ppmp->fiscal_year ?: '—' }}</p>
         </div>
-        <div class="info-item">
-            <span class="info-label">Department / Unit</span>
-            <div class="info-value">{{ $departmentName ?: 'Unassigned' }}</div>
+        <div>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Department</p>
+            <p class="text-sm font-medium text-slate-800">{{ $departmentName ?: '—' }}</p>
         </div>
-        <div class="info-item">
-            <span class="info-label">Fund Source</span>
-            <div class="info-value">{{ $fundSourceName ?: 'Unassigned' }}</div>
+        <div>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Fund Source</p>
+            <p class="text-sm font-medium text-slate-800">{{ $fundSourceName ?: '—' }}</p>
         </div>
-        <div class="info-item">
-            <span class="info-label">Status</span>
-            <div class="info-value"><span class="{{ $statusClass }}">{{ $ppmp->status }}</span></div>
+        <div>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Created</p>
+            <p class="text-sm text-slate-600">{{ \Illuminate\Support\Carbon::parse($ppmp->created_at)->format('M d, Y') }}</p>
         </div>
-        <div class="info-item">
-            <span class="info-label">Created</span>
-            <div class="info-value">{{ \Illuminate\Support\Carbon::parse($ppmp->created_at)->format('M d, Y h:i A') }}</div>
+        @if($ppmp->submitted_at)
+        <div>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Submitted</p>
+            <p class="text-sm text-slate-600">{{ \Illuminate\Support\Carbon::parse($ppmp->submitted_at)->format('M d, Y h:i A') }}</p>
         </div>
-        <div class="info-item">
-            <span class="info-label">Review Remarks</span>
-            <div class="info-value">{{ $ppmp->review_remarks ?: 'No remarks' }}</div>
+        @endif
+        @if($ppmp->review_remarks)
+        <div class="col-span-2 sm:col-span-3">
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Review Remarks</p>
+            <p class="text-sm text-slate-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                {{ $ppmp->review_remarks }}
+            </p>
         </div>
-        <div class="info-item">
-            <span class="info-label">Submitted At</span>
-            <div class="info-value">{{ $ppmp->submitted_at ? \Illuminate\Support\Carbon::parse($ppmp->submitted_at)->format('M d, Y h:i A') : 'Not yet submitted' }}</div>
-        </div>
+        @endif
     </div>
 </div>
 
-<div class="page-card">
-    <h2>Add PPMP Item</h2>
-    @if($ppmp->status !== 'Draft')
-        <p class="helper-text">
-            This PPMP is currently <strong>{{ $ppmp->status }}</strong>. Items can only be edited while the PPMP is in Draft status.
-        </p>
+{{-- Add item form (only for Draft) --}}
+<div class="ui-card" x-data="ppmpItemForm()">
+    <h2 class="ui-card-title">{{ $isDraft ? 'Add Item' : 'Item Form' }}</h2>
+
+    @if(!$isDraft)
+        <div class="flex items-center gap-3 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800 mb-4">
+            <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            </svg>
+            This PPMP is <strong class="mx-1">{{ $ppmp->status }}</strong> — items can only be edited while in Draft status.
+        </div>
     @endif
 
-    <form id="add-ppmp-item-form" action="{{ route('unit.ppmp.addItem', $ppmp->id) }}" method="POST" data-confirm="Add this PPMP item?">
+    <form id="add-ppmp-item-form"
+          action="{{ route('unit.ppmp.addItem', $ppmp->id) }}"
+          method="POST"
+          data-confirm="Add this item to the PPMP?">
         @csrf
 
-        <label for="preset_item_id">Preset Item</label>
-        <select name="preset_item_id" id="preset_item_id" {{ $ppmp->status !== 'Draft' ? 'disabled' : '' }}>
-            <option value="">Select item from preset list</option>
-            @foreach($presetItems as $presetItem)
-                <option
-                    value="{{ $presetItem->id }}"
-                    data-category-id="{{ $presetItem->category_id }}"
-                    data-part-label="{{ $presetItem->part_label }}"
-                    data-item-name="{{ $presetItem->item_name }}"
-                    data-unit="{{ $presetItem->unit }}"
-                    data-price="{{ $presetItem->price }}"
-                    {{ (string) old('preset_item_id') === (string) $presetItem->id ? 'selected' : '' }}
-                >
-                    {{ $presetItem->item_name }}{{ $presetItem->unit ? ' | ' . $presetItem->unit : '' }}{{ $presetItem->price ? ' | PHP ' . $presetItem->price : '' }}
-                </option>
-            @endforeach
-        </select>
-        <p class="helper-text" style="margin-top:8px;">
-            Selecting a preset item will auto-fill the category, item code, item name, unit, and unit price.
-        </p>
+        {{-- Preset selector --}}
+        <div class="mb-5">
+            <label class="field-label">Preset Item</label>
+            <select name="preset_item_id" x-model="presetId" @change="applyPreset($event)"
+                    {{ !$isDraft ? 'disabled' : '' }} class="field-input">
+                <option value="">— Select from preset list (optional) —</option>
+                @foreach($presetItems as $pi)
+                    <option value="{{ $pi->id }}"
+                            data-category-id="{{ $pi->category_id }}"
+                            data-part-label="{{ $pi->part_label }}"
+                            data-item-name="{{ $pi->item_name }}"
+                            data-unit="{{ $pi->unit }}"
+                            data-price="{{ $pi->price }}"
+                            {{ (string) old('preset_item_id') === (string) $pi->id ? 'selected' : '' }}>
+                        {{ $pi->item_name }}{{ $pi->unit ? ' · '.$pi->unit : '' }}{{ $pi->price ? ' · ₱'.$pi->price : '' }}
+                    </option>
+                @endforeach
+            </select>
+            <p class="field-hint">Selecting a preset auto-fills category, name, unit, and price.</p>
+        </div>
 
-        <div class="info-grid">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div>
-                <label>Category</label>
-                <select name="category_id" id="category_id" {{ $ppmp->status !== 'Draft' ? 'disabled' : '' }}>
+                <label class="field-label">Category</label>
+                <select name="category_id" x-model="form.category_id" {{ !$isDraft ? 'disabled' : '' }} class="field-input">
                     <option value="">Select Category</option>
-                    @foreach($categories as $category)
-                        <option value="{{ $category->id }}" {{ (string) old('category_id') === (string) $category->id ? 'selected' : '' }}>
-                            {{ $category->name }}
+                    @foreach($categories as $cat)
+                        <option value="{{ $cat->id }}" {{ (string) old('category_id') === (string) $cat->id ? 'selected' : '' }}>
+                            {{ $cat->name }}
                         </option>
                     @endforeach
                 </select>
             </div>
             <div>
-                <label>UACS / Item Code</label>
-                <input type="text" name="uacs_code" value="{{ old('uacs_code') }}" {{ $ppmp->status !== 'Draft' ? 'disabled' : '' }}>
+                <label class="field-label">UACS / Item Code</label>
+                <input type="text" name="uacs_code" x-model="form.uacs_code"
+                       {{ !$isDraft ? 'disabled' : '' }} class="field-input"
+                       value="{{ old('uacs_code') }}">
+            </div>
+            <div>
+                <label class="field-label">Item Name</label>
+                <input type="text" name="item_name" x-model="form.item_name"
+                       {{ !$isDraft ? 'disabled' : '' }} class="field-input"
+                       value="{{ old('item_name') }}">
+            </div>
+            <div>
+                <label class="field-label">Unit</label>
+                <input type="text" name="unit" x-model="form.unit"
+                       {{ !$isDraft ? 'disabled' : '' }} class="field-input"
+                       value="{{ old('unit') }}">
             </div>
         </div>
 
-        <div class="info-grid">
+        <div class="mb-4">
+            <label class="field-label">Description / Specifications</label>
+            <textarea name="specifications" rows="2" {{ !$isDraft ? 'disabled' : '' }}
+                      class="field-input resize-none">{{ old('specifications') }}</textarea>
+        </div>
+
+        {{-- Quarterly quantities --}}
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+            @foreach([1,2,3,4] as $q)
+                <div>
+                    <label class="field-label">Q{{ $q }} Quantity</label>
+                    <input type="number" name="quantity_q{{ $q }}" min="0"
+                           x-model.number="form.q{{ $q }}"
+                           @input="recalc()"
+                           value="{{ old('quantity_q'.$q, 0) }}"
+                           required {{ !$isDraft ? 'disabled' : '' }}
+                           class="field-input">
+                </div>
+            @endforeach
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
             <div>
-                <label>Item Name</label>
-                <input type="text" name="item_name" value="{{ old('item_name') }}" {{ $ppmp->status !== 'Draft' ? 'disabled' : '' }}>
+                <label class="field-label">Total Quantity</label>
+                <input type="number" :value="totalQty" readonly class="field-input bg-slate-50 text-slate-500 cursor-default">
             </div>
             <div>
-                <label>Unit</label>
-                <input type="text" name="unit" value="{{ old('unit') }}" {{ $ppmp->status !== 'Draft' ? 'disabled' : '' }}>
+                <label class="field-label">Unit Price (₱)</label>
+                <input type="number" name="unit_cost" min="0" step="0.01"
+                       x-model.number="form.unit_cost"
+                       @input="recalc()"
+                       value="{{ old('unit_cost') }}"
+                       {{ !$isDraft ? 'disabled' : '' }} class="field-input">
+            </div>
+            <div>
+                <label class="field-label">Estimated Budget (₱)</label>
+                <input type="number" :value="estimatedBudget" readonly class="field-input bg-slate-50 text-slate-500 cursor-default">
             </div>
         </div>
 
-        <label>Description / Specifications</label>
-        <textarea name="specifications" rows="3" {{ $ppmp->status !== 'Draft' ? 'disabled' : '' }}>{{ old('specifications') }}</textarea>
-
-        <div class="info-grid" style="grid-template-columns: repeat(4, minmax(0, 1fr));">
-            <div>
-                <label>Q1 Quantity</label>
-                <input type="number" name="quantity_q1" min="0" value="{{ old('quantity_q1', 0) }}" required {{ $ppmp->status !== 'Draft' ? 'disabled' : '' }}>
-            </div>
-            <div>
-                <label>Q2 Quantity</label>
-                <input type="number" name="quantity_q2" min="0" value="{{ old('quantity_q2', 0) }}" required {{ $ppmp->status !== 'Draft' ? 'disabled' : '' }}>
-            </div>
-            <div>
-                <label>Q3 Quantity</label>
-                <input type="number" name="quantity_q3" min="0" value="{{ old('quantity_q3', 0) }}" required {{ $ppmp->status !== 'Draft' ? 'disabled' : '' }}>
-            </div>
-            <div>
-                <label>Q4 Quantity</label>
-                <input type="number" name="quantity_q4" min="0" value="{{ old('quantity_q4', 0) }}" required {{ $ppmp->status !== 'Draft' ? 'disabled' : '' }}>
-            </div>
+        <div class="mb-5">
+            <label class="field-label">Mode of Procurement</label>
+            <input type="text" name="mode_of_procurement"
+                   value="{{ old('mode_of_procurement', 'N/A') }}"
+                   {{ !$isDraft ? 'disabled' : '' }} class="field-input sm:max-w-xs">
         </div>
 
-        <div class="info-grid">
-            <div>
-                <label>Total Quantity</label>
-                <input type="number" id="total_quantity_display" value="0" readonly>
-            </div>
-            <div>
-                <label>Unit Price</label>
-                <input type="number" name="unit_cost" min="0" step="0.01" value="{{ old('unit_cost') }}" {{ $ppmp->status !== 'Draft' ? 'disabled' : '' }}>
-            </div>
-            <div>
-                <label>Estimated Budget</label>
-                <input type="number" id="estimated_budget_display" value="0.00" readonly>
-            </div>
-            <div>
-                <label>Mode of Procurement</label>
-                <input type="text" name="mode_of_procurement" value="{{ old('mode_of_procurement', 'N/A') }}" {{ $ppmp->status !== 'Draft' ? 'disabled' : '' }}>
-            </div>
-        </div>
-
-        @if($ppmp->status === 'Draft')
-            <div class="action-row">
-                <button type="submit" class="btn-create">Add Item</button>
+        @if($isDraft)
+            <div class="flex justify-end">
+                <button type="submit" class="btn-success">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Add Item
+                </button>
             </div>
         @endif
     </form>
 </div>
 
-<div class="page-card">
-    <h2>Current Items</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Category</th>
-                <th>UACS / Code</th>
-                <th>Item Name</th>
-                <th>Specifications</th>
-                <th>Q1</th>
-                <th>Q2</th>
-                <th>Q3</th>
-                <th>Q4</th>
-                <th>Total Qty</th>
-                <th>Unit</th>
-                <th>Unit Cost</th>
-                <th>Estimated Budget</th>
-                <th>Mode of Procurement</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($items as $item)
+{{-- Current items table --}}
+<div class="bg-white rounded-xl border border-slate-200 overflow-hidden mb-5">
+    <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
+        <h2 class="text-sm font-bold text-slate-800">Current Items</h2>
+        <span class="text-xs text-slate-400">{{ count($items) }} item(s)</span>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="data-table">
+            <thead>
                 <tr>
-                    <td>{{ $loop->iteration }}</td>
-                    <td>
-                        {{ $categories->firstWhere('id', $item->category_id)?->name ?? '-' }}
-                    </td>
-                    <td>{{ $item->uacs_code ?: '-' }}</td>
-                    <td>{{ $item->item_name ?: $item->description }}</td>
-                    <td>{{ $item->specifications ?: '-' }}</td>
-                    <td>{{ $item->quantity_q1 }}</td>
-                    <td>{{ $item->quantity_q2 }}</td>
-                    <td>{{ $item->quantity_q3 }}</td>
-                    <td>{{ $item->quantity_q4 }}</td>
-                    <td>{{ $item->quantity }}</td>
-                    <td>{{ $item->unit ?: '-' }}</td>
-                    <td>{{ number_format($item->unit_cost, 2) }}</td>
-                    <td>{{ number_format($item->estimated_budget, 2) }}</td>
-                    <td>{{ $item->mode_of_procurement ?: '-' }}</td>
+                    <th>#</th>
+                    <th>Category</th>
+                    <th>Code</th>
+                    <th>Item Name</th>
+                    <th>Specs</th>
+                    <th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th>
+                    <th>Total Qty</th>
+                    <th>Unit</th>
+                    <th>Unit Cost</th>
+                    <th>Est. Budget</th>
+                    <th>Mode</th>
                 </tr>
-            @empty
-                <tr>
-                    <td colspan="13" style="text-align:center;">No PPMP items added yet.</td>
-                </tr>
-            @endforelse
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @forelse($items as $item)
+                    <tr>
+                        <td class="text-slate-400">{{ $loop->iteration }}</td>
+                        <td>{{ $categories->firstWhere('id', $item->category_id)?->name ?? '—' }}</td>
+                        <td class="text-slate-400 text-xs">{{ $item->uacs_code ?: '—' }}</td>
+                        <td class="font-medium text-slate-900">{{ $item->item_name ?: $item->description }}</td>
+                        <td class="text-slate-500 text-xs max-w-40 truncate" title="{{ $item->specifications }}">{{ $item->specifications ?: '—' }}</td>
+                        <td class="text-center">{{ $item->quantity_q1 }}</td>
+                        <td class="text-center">{{ $item->quantity_q2 }}</td>
+                        <td class="text-center">{{ $item->quantity_q3 }}</td>
+                        <td class="text-center">{{ $item->quantity_q4 }}</td>
+                        <td class="text-center font-medium">{{ $item->quantity }}</td>
+                        <td>{{ $item->unit ?: '—' }}</td>
+                        <td>₱{{ number_format($item->unit_cost, 2) }}</td>
+                        <td class="font-medium text-emerald-700">₱{{ number_format($item->estimated_budget, 2) }}</td>
+                        <td class="text-slate-400 text-xs">{{ $item->mode_of_procurement ?: '—' }}</td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="14" class="text-center text-slate-400 py-10">No items added yet.</td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
 
-    @if($ppmp->status === 'Draft')
-        <form action="{{ route('unit.ppmp.addItem', $ppmp->id) }}" method="POST" style="margin-top:18px;" data-confirm="Submit this PPMP for validation?">
-            @csrf
-            <input type="hidden" name="action_type" value="submit">
-            <button type="submit" class="btn btn-primary">Submit PPMP</button>
-        </form>
+    @if($isDraft && count($items) > 0)
+        <div class="px-5 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-4">
+            <p class="text-sm text-slate-500">Ready to submit? This will send the PPMP to the admin for validation.</p>
+            <form action="{{ route('unit.ppmp.addItem', $ppmp->id) }}" method="POST"
+                  data-confirm="Submit this PPMP for admin validation?">
+                @csrf
+                <input type="hidden" name="action_type" value="submit">
+                <button type="submit" class="btn-primary">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Submit PPMP
+                </button>
+            </form>
+        </div>
     @endif
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const form = document.getElementById('add-ppmp-item-form');
-        if (!form) return;
+function ppmpItemForm() {
+    return {
+        presetId: '{{ old('preset_item_id', '') }}',
+        form: {
+            category_id: '{{ old('category_id', '') }}',
+            uacs_code:   '{{ old('uacs_code', '') }}',
+            item_name:   '{{ old('item_name', '') }}',
+            unit:        '{{ old('unit', '') }}',
+            q1: {{ old('quantity_q1', 0) }},
+            q2: {{ old('quantity_q2', 0) }},
+            q3: {{ old('quantity_q3', 0) }},
+            q4: {{ old('quantity_q4', 0) }},
+            unit_cost: {{ old('unit_cost', 0) }},
+        },
+        get totalQty()       { return (this.form.q1||0)+(this.form.q2||0)+(this.form.q3||0)+(this.form.q4||0); },
+        get estimatedBudget(){ return (this.totalQty * (this.form.unit_cost||0)).toFixed(2); },
+        recalc() {},
+        applyPreset(event) {
+            const opt = event.target.options[event.target.selectedIndex];
+            if (!opt || !opt.value) return;
+            this.form.category_id = opt.dataset.categoryId || '';
+            this.form.uacs_code   = opt.dataset.partLabel  || '';
+            this.form.item_name   = opt.dataset.itemName   || '';
+            this.form.unit        = opt.dataset.unit        || '';
+            this.form.unit_cost   = parseFloat(opt.dataset.price || '0');
 
-        const presetSelect = form.querySelector('#preset_item_id');
-        const categorySelect = form.querySelector('#category_id');
-        const codeInput = form.querySelector('input[name="uacs_code"]');
-        const itemNameInput = form.querySelector('input[name="item_name"]');
-        const specificationsInput = form.querySelector('textarea[name="specifications"]');
-        const unitInput = form.querySelector('input[name="unit"]');
-        const q1Input = form.querySelector('input[name="quantity_q1"]');
-        const q2Input = form.querySelector('input[name="quantity_q2"]');
-        const q3Input = form.querySelector('input[name="quantity_q3"]');
-        const q4Input = form.querySelector('input[name="quantity_q4"]');
-        const unitCostInput = form.querySelector('input[name="unit_cost"]');
-        const totalQuantityDisplay = form.querySelector('#total_quantity_display');
-        const estimatedBudgetDisplay = form.querySelector('#estimated_budget_display');
-
-        if (!presetSelect) return;
-
-        function recalculateTotals() {
-            if (!q1Input || !q2Input || !q3Input || !q4Input || !unitCostInput || !totalQuantityDisplay || !estimatedBudgetDisplay) return;
-            const quantity = [
-                parseFloat(q1Input.value || '0'),
-                parseFloat(q2Input.value || '0'),
-                parseFloat(q3Input.value || '0'),
-                parseFloat(q4Input.value || '0')
-            ].reduce((sum, current) => sum + current, 0);
-            const unitCost = parseFloat(unitCostInput.value || '0');
-            totalQuantityDisplay.value = quantity;
-            estimatedBudgetDisplay.value = (quantity * unitCost).toFixed(2);
-        }
-
-        function applyPreset() {
-            const option = presetSelect.options[presetSelect.selectedIndex];
-            if (!option || !option.value) {
-                if (categorySelect) categorySelect.value = '';
-                if (codeInput) codeInput.value = '';
-                if (itemNameInput) itemNameInput.value = '';
-                if (unitInput) unitInput.value = '';
-                if (unitCostInput) unitCostInput.value = '';
-                recalculateTotals();
-                return;
+            // Also update non-Alpine selects/inputs
+            const form = document.getElementById('add-ppmp-item-form');
+            if (form) {
+                const catSel = form.querySelector('[name="category_id"]');
+                if (catSel) catSel.value = this.form.category_id;
             }
-
-            if (categorySelect) categorySelect.value = String(option.dataset.categoryId ?? '');
-            if (codeInput) codeInput.value = String(option.dataset.partLabel ?? '');
-            if (itemNameInput) itemNameInput.value = String(option.dataset.itemName ?? '');
-            if (unitInput) unitInput.value = String(option.dataset.unit ?? '');
-            if (unitCostInput) unitCostInput.value = String(option.dataset.price ?? '');
-            if (specificationsInput && !specificationsInput.value.trim()) specificationsInput.value = '';
-
-            recalculateTotals();
         }
-
-        presetSelect.addEventListener('change', applyPreset);
-        presetSelect.addEventListener('input', applyPreset);
-
-        [q1Input, q2Input, q3Input, q4Input, unitCostInput].forEach(function (input) {
-            if (input) input.addEventListener('input', recalculateTotals);
-        });
-
-        if (presetSelect.value) applyPreset();
-        recalculateTotals();
-    });
+    };
+}
 </script>
+
 @endsection
