@@ -1,121 +1,146 @@
 @extends('unit.layout')
-
-@section('title', 'Create Purchase Request - ConsoliData')
+@section('title', 'Create Purchase Request — ConsoliData')
 
 @section('content')
-<div class="page-header">
+
+<div class="flex items-center justify-between gap-4 mb-6">
     <div>
-        <h1>Create Purchase Request</h1>
-        <p>Create a new purchase request from an approved PPMP under the fund source you are currently viewing.</p>
+        <div class="flex items-center gap-2 text-sm text-slate-400 mb-1">
+            <a href="{{ route('unit.pr.index') }}" class="hover:text-slate-600 transition-colors">Purchase Requests</a>
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m9 18 6-6-6-6"/></svg>
+            <span class="text-slate-600">Create</span>
+        </div>
+        <h1 class="text-2xl font-bold text-slate-900">Create Purchase Request</h1>
+        <p class="text-sm text-slate-500 mt-0.5">Select an approved PPMP and enter quantities from remaining items.</p>
     </div>
-    <a href="{{ route('unit.pr.index') }}" class="btn btn-primary">Back to Requests</a>
+    <a href="{{ route('unit.pr.index') }}" class="btn-secondary btn-sm flex-shrink-0">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m15 18-6-6 6-6"/></svg>
+        Back
+    </a>
 </div>
 
-<div class="page-card">
-    <h2>Unit Account Details</h2>
-    <div class="info-grid">
-        <div class="info-item">
-            <span class="info-label">Department / Unit</span>
-            <div class="info-value">{{ $departmentName ?: 'Not assigned yet' }}</div>
+{{-- Unit info --}}
+<div class="ui-card">
+    <h2 class="ui-card-title">Unit Details</h2>
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Department / Unit</p>
+            <p class="text-sm font-medium text-slate-800">{{ $departmentName ?: 'Not assigned' }}</p>
         </div>
-        <div class="info-item">
-            <span class="info-label">Current Dashboard View</span>
-            <div class="info-value">{{ $fundSourceName ?: 'All fund sources' }}</div>
+        <div>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Fund Source View</p>
+            <p class="text-sm font-medium text-slate-800">{{ $fundSourceName ?: 'All fund sources' }}</p>
         </div>
     </div>
 </div>
 
-<div class="page-card">
-    <h2>Create Draft Request</h2>
-    @if($approvedPpmps->isEmpty())
-        <p class="helper-text">
-            You need at least one <strong>approved</strong> PPMP before you can create a purchase request.
-        </p>
-    @else
-        <p class="helper-text">
-            Select an approved PPMP, then enter the quantities you want to request from its remaining items.
-        </p>
-
-        <form method="GET" action="{{ route('unit.pr.create') }}" style="margin-bottom:20px;">
-            <label for="ppmp_selector">Approved PPMP</label>
-            <select id="ppmp_selector" name="ppmp_id" onchange="this.form.submit()">
-                @foreach($approvedPpmps as $ppmp)
-                    <option value="{{ $ppmp->id }}" {{ (string) ($selectedPpmp->id ?? '') === (string) $ppmp->id ? 'selected' : '' }}>
-                        {{ $ppmp->ppmp_no ?: ('Draft Ref #' . $ppmp->id) }} | FY {{ $ppmp->fiscal_year ?: '-' }} | {{ $ppmp->status }}
-                    </option>
-                @endforeach
-            </select>
+@if($approvedPpmps->isEmpty())
+    <div class="flex items-start gap-3 px-5 py-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm">
+        <svg class="w-5 h-5 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        </svg>
+        <div>
+            <p class="font-semibold mb-0.5">No approved PPMP found</p>
+            <p>You need at least one <strong>Approved</strong> PPMP before creating a purchase request.</p>
+        </div>
+    </div>
+@else
+    {{-- PPMP selector --}}
+    <div class="ui-card">
+        <h2 class="ui-card-title">Select PPMP</h2>
+        <form method="GET" action="{{ route('unit.pr.create') }}" class="flex items-end gap-3">
+            <div class="flex-1">
+                <label for="ppmp_selector" class="field-label">Approved PPMP</label>
+                <select id="ppmp_selector" name="ppmp_id" onchange="this.form.submit()" class="field-input">
+                    @foreach($approvedPpmps as $ppmp)
+                        <option value="{{ $ppmp->id }}" {{ (string) ($selectedPpmp->id ?? '') === (string) $ppmp->id ? 'selected' : '' }}>
+                            {{ $ppmp->ppmp_no ?: 'Draft Ref #'.$ppmp->id }} | FY {{ $ppmp->fiscal_year ?: '—' }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
         </form>
+    </div>
 
-        @if($selectedPpmp)
-            <form action="{{ route('unit.pr.store') }}" method="POST" data-confirm="Create this purchase request from the selected PPMP?">
+    @if($selectedPpmp)
+        <div class="ui-card">
+            <div class="flex items-center justify-between mb-5">
+                <h2 class="ui-card-title mb-0">Draft Request</h2>
+                <div class="flex items-center gap-4 text-sm text-slate-500">
+                    <span>PPMP <strong class="text-slate-700">{{ $selectedPpmp->ppmp_no ?: '#'.$selectedPpmp->id }}</strong></span>
+                    <span>FY <strong class="text-slate-700">{{ $selectedPpmp->fiscal_year ?: '—' }}</strong></span>
+                    <span class="status-badge status-approved">{{ $selectedPpmp->status }}</span>
+                </div>
+            </div>
+
+            <form action="{{ route('unit.pr.store') }}" method="POST"
+                  data-confirm="Create this purchase request from the selected PPMP?">
                 @csrf
                 <input type="hidden" name="ppmp_id" value="{{ $selectedPpmp->id }}">
 
-                <div class="info-grid" style="margin-bottom:18px;">
-                    <div class="info-item">
-                        <span class="info-label">Selected PPMP</span>
-                        <div class="info-value">{{ $selectedPpmp->ppmp_no ?: ('Draft Ref #' . $selectedPpmp->id) }}</div>
-                        <div class="info-subtext">Fiscal Year {{ $selectedPpmp->fiscal_year ?: '-' }} | {{ $selectedPpmp->status }}</div>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Available Item Rows</span>
-                        <div class="info-value">{{ $sourceItems->count() }}</div>
-                        <div class="info-subtext">Choose the quantities you need from approved PPMP items.</div>
-                    </div>
+                <div class="mb-5">
+                    <label for="purpose" class="field-label">Purpose / Justification <span class="text-red-500">*</span></label>
+                    <textarea id="purpose" name="purpose" rows="3" required
+                              class="field-input resize-none"
+                              placeholder="Describe the purpose of this purchase request…">{{ old('purpose') }}</textarea>
                 </div>
 
-                <label for="purpose">Purpose / Justification</label>
-                <textarea id="purpose" name="purpose" rows="3" required>{{ old('purpose') }}</textarea>
-
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Category</th>
-                            <th>Item</th>
-                            <th>Specifications</th>
-                            <th>Unit</th>
-                            <th>Unit Price</th>
-                            <th>Remaining Qty</th>
-                            <th>Remaining Budget</th>
-                            <th>Request Qty</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($sourceItems as $item)
+                <div class="overflow-x-auto rounded-xl border border-slate-200 mb-5">
+                    <table class="data-table">
+                        <thead>
                             <tr>
-                                <td>{{ $item->category_name ?: '-' }}</td>
-                                <td>{{ $item->item_name ?: $item->description }}</td>
-                                <td>{{ $item->specifications ?: '-' }}</td>
-                                <td>{{ $item->unit ?: '-' }}</td>
-                                <td>{{ number_format($item->unit_cost, 2) }}</td>
-                                <td>{{ $item->remaining_quantity }}</td>
-                                <td>{{ number_format($item->remaining_budget, 2) }}</td>
-                                <td>
-                                    <input
-                                        type="number"
-                                        name="requested_quantities[{{ $item->id }}]"
-                                        min="0"
-                                        max="{{ $item->remaining_quantity }}"
-                                        value="{{ old('requested_quantities.' . $item->id, 0) }}"
-                                    >
-                                </td>
+                                <th>Category</th>
+                                <th>Item</th>
+                                <th>Specifications</th>
+                                <th>Unit</th>
+                                <th>Unit Price</th>
+                                <th>Remaining Qty</th>
+                                <th>Remaining Budget</th>
+                                <th>Request Qty</th>
                             </tr>
-                        @empty
-                            <tr>
-                                <td colspan="8" style="text-align:center;">No remaining approved PPMP items are available for this PPMP.</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @forelse($sourceItems as $item)
+                                <tr>
+                                    <td>{{ $item->category_name ?: '—' }}</td>
+                                    <td class="font-medium text-slate-900">{{ $item->item_name ?: $item->description }}</td>
+                                    <td class="text-slate-500 text-xs max-w-40 truncate" title="{{ $item->specifications }}">{{ $item->specifications ?: '—' }}</td>
+                                    <td>{{ $item->unit ?: '—' }}</td>
+                                    <td>₱{{ number_format($item->unit_cost, 2) }}</td>
+                                    <td class="text-center font-semibold text-emerald-600">{{ $item->remaining_quantity }}</td>
+                                    <td class="text-emerald-600">₱{{ number_format($item->remaining_budget, 2) }}</td>
+                                    <td>
+                                        <input type="number"
+                                               name="requested_quantities[{{ $item->id }}]"
+                                               min="0" max="{{ $item->remaining_quantity }}"
+                                               value="{{ old('requested_quantities.'.$item->id, 0) }}"
+                                               class="field-input w-24 text-center">
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="8" class="text-center text-slate-400 py-8">
+                                        No remaining approved PPMP items available for this plan.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
 
                 @if($sourceItems->isNotEmpty())
-                    <div class="action-row">
-                        <button type="submit" class="btn-create">Create Draft Request</button>
+                    <div class="flex justify-end">
+                        <button type="submit" class="btn-primary">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Create Draft Request
+                        </button>
                     </div>
                 @endif
             </form>
-        @endif
+        </div>
     @endif
-</div>
+@endif
+
 @endsection
